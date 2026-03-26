@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Alter Wheel</title>
+
+<style>
+body {
+  text-align:center;
+  font-family:Arial;
+  background:linear-gradient(135deg,#1e1e2f,#ff7a00);
+  color:white;
+}
+
+button {
+  padding:10px;
+  margin:5px;
+  border:none;
+  border-radius:8px;
+  background:orange;
+  color:white;
+}
+
+#wheel {
+  width:200px;
+  height:200px;
+  border-radius:50%;
+  background:conic-gradient(
+    orange 0% 14%,
+    yellow 14% 28%,
+    orange 28% 42%,
+    yellow 42% 56%,
+    orange 56% 70%,
+    yellow 70% 84%,
+    orange 84% 100%
+  );
+  margin:20px auto;
+  transition:2s;
+}
+
+#arrow {
+  font-size:25px;
+}
+.card {
+  background:rgba(255,255,255,0.2);
+  margin:5px;
+  padding:5px;
+  border-radius:8px;
+}
+</style>
+
+</head>
+<body>
+
+<h1>🎡 Alter акция</h1>
+
+<button onclick="reg()">Регистрация</button>
+<button onclick="spin()">Крутить</button>
+
+<h2 id="user"></h2>
+
+<div id="arrow">▼</div>
+<div id="wheel"></div>
+
+<h3 id="res"></h3>
+
+<h3>🏆 Победители</h3>
+<div id="wins"></div>
+
+<audio id="s" src="spin.mp3"></audio>
+
+<script>
+let user = null;
+
+// регистрация
+async function reg(){
+  let r = await fetch("/reg",{method:"POST"});
+  user = await r.json();
+  localStorage.user = JSON.stringify(user);
+  show();
+}
+
+// показать
+function show(){
+  document.getElementById("user").innerText =
+   "👤 №"+user.id+" | 💰 "+user.balance;
+}
+
+// крутка
+async function spin(){
+  if(!user) return alert("Сначала регистрация");
+
+  document.getElementById("s").play();
+
+  let w = document.getElementById("wheel");
+  w.style.transform = "rotate("+(Math.random()*2000)+"deg)";
+
+  setTimeout(async()=>{
+    let r = await fetch("/spin",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({id:user.id})
+    });
+
+    let d = await r.json();
+
+    if(d.error) return alert(d.error);
+
+    user.balance = d.balance;
+    localStorage.user = JSON.stringify(user);
+
+    show();
+
+    document.getElementById("res").innerText =
+      "🎁 "+d.prize;
+
+    confetti();
+    load();
+
+  },2000);
+}
+
+// конфетти
+function confetti(){
+  for(let i=0;i<30;i++){
+    let d=document.createElement("div");
+    d.style.position="fixed";
+    d.style.left=Math.random()*100+"%";
+    d.style.top="0";
+    d.style.width="5px";
+    d.style.height="10px";
+    d.style.background="red";
+    d.style.animation="fall 2s linear";
+    document.body.appendChild(d);
+    setTimeout(()=>d.remove(),2000);
+  }
+}
+
+// победители
+async function load(){
+  let r = await fetch("/win");
+  let data = await r.json();
+
+  let html="";
+  data.forEach(w=>{
+    html+=`<div class="card">👤 #${w.id} 🎁 ${w.prize}</div>`;
+  });
+
+  document.getElementById("wins").innerHTML=html;
+}
+
+// авто вход
+window.onload=()=>{
+  if(localStorage.user){
+    user = JSON.parse(localStorage.user);
+    show();
+  }
+  load();
+};
+</script>
+
+</body>
+</html>
