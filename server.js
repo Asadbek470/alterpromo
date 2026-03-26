@@ -1,12 +1,12 @@
 const express = require("express");
-
 const app = express();
+
 app.use(express.json());
 app.use(express.static("."));
 
 let users = [];
 let winners = [];
-let rareGiven = false; // 🔥 редкий приз только 1 раз
+let rareGiven = false;
 
 // 🎯 призы
 const prizes = [
@@ -14,19 +14,15 @@ const prizes = [
   {name:"10% скидка", w:25},
   {name:"15% скидка", w:20},
   {name:"Сервис 3 года", w:10},
-
   {name:"🍳 Посуда", w:2},
   {name:"🍳 Tefal", w:2},
-
   {name:"500 кг угля", w:0.5},
   {name:"1 тонна угля", w:0.5},
-
   {name:"🔥 КОТЕЛ", w:0.01}
 ];
 
 // 🎯 выбор
 function getPrize(userId){
-  // 🎯 счастливые пользователи
   if ([100,777,1000].includes(userId)) {
     return ["🍳 Посуда","🍳 Tefal","🔥 КОТЕЛ"][Math.floor(Math.random()*3)];
   }
@@ -36,7 +32,6 @@ function getPrize(userId){
 
   for(let p of prizes){
     if(rand < p.w){
-      // 🔥 редкий контроль
       if(p.name.includes("КОТЕЛ") && rareGiven){
         return "5% скидка";
       }
@@ -51,13 +46,13 @@ function getPrize(userId){
   }
 }
 
-// 👤 регистрация (1 раз)
+// 👤 регистрация
 app.post("/reg",(req,res)=>{
   let user = {
     id: users.length+1,
     balance: 50,
     spins: [],
-    gotRare: false
+    gotRare:false
   };
 
   users.push(user);
@@ -67,11 +62,10 @@ app.post("/reg",(req,res)=>{
 // 🎡 крутка
 app.post("/spin",(req,res)=>{
   let {id} = req.body;
-
   let user = users.find(u=>u.id===id);
+
   if(!user) return res.send("error");
 
-  // ⏳ лимит 2 раза в сутки
   let now = Date.now();
   user.spins = user.spins.filter(t=> now - t < 86400000);
 
@@ -89,11 +83,7 @@ app.post("/spin",(req,res)=>{
 
   let prize = getPrize(user.id);
 
-  // 🏆 редкий только 1 раз
-  if(
-    (prize.includes("угля") || prize.includes("КОТЕЛ")) &&
-    user.gotRare
-  ){
+  if((prize.includes("угля") || prize.includes("КОТЕЛ")) && user.gotRare){
     prize = "5% скидка";
   }
 
@@ -108,7 +98,6 @@ app.post("/spin",(req,res)=>{
   res.json({prize, balance:user.balance});
 });
 
-// 🏆 список
 app.get("/win",(req,res)=>{
   res.json(winners);
 });
