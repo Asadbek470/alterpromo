@@ -1,18 +1,12 @@
 const express = require("express");
-const fs = require("fs-extra");
 
 const app = express();
 app.use(express.json());
 app.use(express.static("."));
 
-const FILE = "data.json";
-
-if (!fs.existsSync(FILE)) {
-  fs.writeJsonSync(FILE, {
-    users: [],
-    winners: []
-  });
-}
+// 🧠 данные в памяти (без JSON файла)
+let users = [];
+let winners = [];
 
 const prizes = [
   "5% скидка",
@@ -29,27 +23,21 @@ function getPrize() {
 }
 
 // 👤 регистрация
-app.post("/reg", async (req, res) => {
-  let data = await fs.readJson(FILE);
-
+app.post("/reg", (req, res) => {
   let user = {
-    id: data.users.length + 1,
+    id: users.length + 1,
     balance: 50
   };
 
-  data.users.push(user);
-  await fs.writeJson(FILE, data);
-
+  users.push(user);
   res.json(user);
 });
 
 // 🎡 крутка
-app.post("/spin", async (req, res) => {
+app.post("/spin", (req, res) => {
   let { id } = req.body;
-  let data = await fs.readJson(FILE);
 
-  let user = data.users.find(u => u.id === id);
-
+  let user = users.find(u => u.id === id);
   if (!user) return res.send("error");
 
   if (user.balance < 10) {
@@ -60,20 +48,18 @@ app.post("/spin", async (req, res) => {
 
   let prize = getPrize();
 
-  // 💎 ТВОИ ОСОБЫЕ ЧИСЛА
+  // 💎 ТОЛЬКО ЭТИ ОСОБЫЕ НОМЕРА
   if ([100, 775, 777, 1000].includes(user.id)) {
     prize = "💎 СУПЕР ПРИЗ";
   }
 
-  // 🏆 сохраняем
+  // 🏆 победители
   if (prize.includes("Котел") || prize.includes("СУПЕР")) {
-    data.winners.push({
+    winners.push({
       id: user.id,
       prize: prize
     });
   }
-
-  await fs.writeJson(FILE, data);
 
   res.json({
     prize,
@@ -82,9 +68,8 @@ app.post("/spin", async (req, res) => {
 });
 
 // 🏆 список
-app.get("/win", async (req, res) => {
-  let data = await fs.readJson(FILE);
-  res.json(data.winners.slice(-5).reverse());
+app.get("/win", (req, res) => {
+  res.json(winners.slice(-5).reverse());
 });
 
-app.listen(3000, () => console.log("🚀 ready"));
+app.listen(3000, () => console.log("🚀 Готово"));
