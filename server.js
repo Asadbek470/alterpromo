@@ -72,4 +72,5 @@ app.get("/win", (req, res) => {
   res.json(winners.slice(-5).reverse());
 });
 
-app.listen(3000, () => console.log("🚀 Готово"));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("🚀 Готово"));
