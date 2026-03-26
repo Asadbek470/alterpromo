@@ -5,52 +5,63 @@
 <title>Alter Wheel</title>
 
 <style>
-body {
+body{
+  margin:0;
   text-align:center;
   font-family:Arial;
   background:linear-gradient(135deg,#1e1e2f,#ff7a00);
   color:white;
 }
 
-button {
-  padding:10px;
+h1{font-size:22px;}
+
+button{
+  padding:10px 15px;
   margin:5px;
   border:none;
-  border-radius:8px;
+  border-radius:10px;
   background:orange;
   color:white;
+  font-size:14px;
 }
 
-#wheel {
-  width:200px;
-  height:200px;
+.container{
+  padding:10px;
+}
+
+/* 📱 адаптация */
+#wheel{
+  width:80vw;
+  height:80vw;
+  max-width:300px;
+  max-height:300px;
   border-radius:50%;
-  background:conic-gradient(
-    orange 0% 14%,
-    yellow 14% 28%,
-    orange 28% 42%,
-    yellow 42% 56%,
-    orange 56% 70%,
-    yellow 70% 84%,
-    orange 84% 100%
-  );
   margin:20px auto;
-  transition:2s;
+  transition:3s cubic-bezier(.17,.67,.83,.67);
 }
 
-#arrow {
+#arrow{
   font-size:25px;
 }
-.card {
+
+.card{
   background:rgba(255,255,255,0.2);
   margin:5px;
-  padding:5px;
-  border-radius:8px;
+  padding:8px;
+  border-radius:10px;
+  font-size:14px;
+}
+
+/* 🎆 конфетти */
+@keyframes fall{
+  to{transform:translateY(100vh);}
 }
 </style>
 
 </head>
 <body>
+
+<div class="container">
 
 <h1>🎡 Alter акция</h1>
 
@@ -69,10 +80,67 @@ button {
 
 <audio id="s" src="spin.mp3"></audio>
 
-<script>
-let user = null;
+</div>
 
-// регистрация
+<script>
+let user=null;
+
+// 🎯 ПРИЗЫ С ВЕРОЯТНОСТЬЮ
+const prizes = [
+  // 85% — частые
+  {name:"5% скидка", w:20},
+  {name:"10% скидка", w:20},
+  {name:"15% скидка", w:20},
+  {name:"Набор посуды", w:2},
+  {name:"Набор посуды", w:2},
+  {name:"Сервис 3 года", w:21},
+
+  // редкие (очень мало)
+  {name:"500 кг угля", w:1},
+  {name:"600 кг угля", w:1},
+  {name:"700 кг угля", w:1},
+  {name:"1 тонна угля", w:1},
+  {name:"2 тонны угля", w:1},
+  {name:"3 тонны угля", w:1},
+  {name:"4 тонны угля", w:1},
+  {name:"5 тонн угля", w:1},
+
+  // супер редкий
+  {name:"🔥 БЕСПЛАТНЫЙ КОТЕЛ", w:0.2}
+];
+
+// 🎡 создаём красивое колесо
+function drawWheel(){
+  let total = prizes.reduce((s,p)=>s+p.w,0);
+  let current = 0;
+  let colors = ["#ff9800","#ffc107"];
+
+  let gradient = "conic-gradient(";
+  prizes.forEach((p,i)=>{
+    let start = current/total*100;
+    current += p.w;
+    let end = current/total*100;
+
+    gradient += `${colors[i%2]} ${start}% ${end}%,`;
+  });
+
+  gradient = gradient.slice(0,-1)+")";
+  document.getElementById("wheel").style.background = gradient;
+}
+drawWheel();
+
+// 🎯 выбор приза
+function getPrize(){
+  let total = prizes.reduce((s,p)=>s+p.w,0);
+  let rand = Math.random()*total;
+
+  for(let p of prizes){
+    if(rand < p.w) return p.name;
+    rand -= p.w;
+  }
+}
+
+// 👤 регистрация
 async function reg(){
   let r = await fetch("/reg",{method:"POST"});
   user = await r.json();
@@ -83,17 +151,17 @@ async function reg(){
 // показать
 function show(){
   document.getElementById("user").innerText =
-   "👤 №"+user.id+" | 💰 "+user.balance;
+    "👤 №"+user.id+" | 💰 "+user.balance;
 }
 
-// крутка
+// 🎡 крутка
 async function spin(){
   if(!user) return alert("Сначала регистрация");
 
   document.getElementById("s").play();
 
   let w = document.getElementById("wheel");
-  w.style.transform = "rotate("+(Math.random()*2000)+"deg)";
+  w.style.transform = "rotate("+(Math.random()*3000)+"deg)";
 
   setTimeout(async()=>{
     let r = await fetch("/spin",{
@@ -117,26 +185,26 @@ async function spin(){
     confetti();
     load();
 
-  },2000);
+  },3000);
 }
 
-// конфетти
+// 🎆 конфетти
 function confetti(){
-  for(let i=0;i<30;i++){
+  for(let i=0;i<50;i++){
     let d=document.createElement("div");
     d.style.position="fixed";
     d.style.left=Math.random()*100+"%";
     d.style.top="0";
-    d.style.width="5px";
-    d.style.height="10px";
-    d.style.background="red";
+    d.style.width="6px";
+    d.style.height="12px";
+    d.style.background="yellow";
     d.style.animation="fall 2s linear";
     document.body.appendChild(d);
     setTimeout(()=>d.remove(),2000);
   }
 }
 
-// победители
+// 🏆 победители
 async function load(){
   let r = await fetch("/win");
   let data = await r.json();
