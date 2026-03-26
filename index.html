@@ -3,61 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Alter Wheel</title>
-
-<style>
-body{
-  margin:0;
-  text-align:center;
-  font-family:Arial;
-  background:linear-gradient(135deg,#1e1e2f,#ff7a00);
-  color:white;
-}
-
-h1{font-size:22px;}
-
-button{
-  padding:10px 15px;
-  margin:5px;
-  border:none;
-  border-radius:10px;
-  background:orange;
-  color:white;
-  font-size:14px;
-}
-
-.container{
-  padding:10px;
-}
-
-/* 📱 адаптация */
-#wheel{
-  width:80vw;
-  height:80vw;
-  max-width:300px;
-  max-height:300px;
-  border-radius:50%;
-  margin:20px auto;
-  transition:3s cubic-bezier(.17,.67,.83,.67);
-}
-
-#arrow{
-  font-size:25px;
-}
-
-.card{
-  background:rgba(255,255,255,0.2);
-  margin:5px;
-  padding:8px;
-  border-radius:10px;
-  font-size:14px;
-}
-
-/* 🎆 конфетти */
-@keyframes fall{
-  to{transform:translateY(100vh);}
-}
-</style>
-
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -65,167 +11,33 @@ button{
 
 <h1>🎡 Alter акция</h1>
 
-<button onclick="reg()">Регистрация</button>
+<button onclick="register()">Регистрация</button>
 <button onclick="spin()">Крутить</button>
 
 <h2 id="user"></h2>
 
-<div id="arrow">▼</div>
-<div id="wheel"></div>
+<div class="arrow">▼</div>
+<canvas id="wheel" width="300" height="300"></canvas>
 
-<h3 id="res"></h3>
+<h3 id="result"></h3>
 
 <h3>🏆 Победители</h3>
-<div id="wins"></div>
-
-<audio id="s" src="spin.mp3"></audio>
+<div id="winners"></div>
 
 </div>
 
-<script>
-let user=null;
+<!-- ЧЕК -->
+<div id="checkModal">
+  <div class="check">
+    <h3>🧾 Чек</h3>
+    <p id="checkText"></p>
+    <canvas id="qr"></canvas>
+    <button onclick="closeCheck()">Закрыть</button>
+  </div>
+</div>
 
-// 🎯 ПРИЗЫ С ВЕРОЯТНОСТЬЮ
-const prizes = [
-  // 85% — частые
-  {name:"5% скидка", w:20},
-  {name:"10% скидка", w:20},
-  {name:"15% скидка", w:20},
-  {name:"Набор посуды", w:2},
-  {name:"Набор посуды", w:2},
-  {name:"Сервис 3 года", w:21},
-
-  // редкие (очень мало)
-  {name:"500 кг угля", w:1},
-  {name:"600 кг угля", w:1},
-  {name:"700 кг угля", w:1},
-  {name:"1 тонна угля", w:1},
-  {name:"2 тонны угля", w:1},
-  {name:"3 тонны угля", w:1},
-  {name:"4 тонны угля", w:1},
-  {name:"5 тонн угля", w:1},
-
-  // супер редкий
-  {name:"🔥 БЕСПЛАТНЫЙ КОТЕЛ", w:0.2}
-];
-
-// 🎡 создаём красивое колесо
-function drawWheel(){
-  let total = prizes.reduce((s,p)=>s+p.w,0);
-  let current = 0;
-  let colors = ["#ff9800","#ffc107"];
-
-  let gradient = "conic-gradient(";
-  prizes.forEach((p,i)=>{
-    let start = current/total*100;
-    current += p.w;
-    let end = current/total*100;
-
-    gradient += `${colors[i%2]} ${start}% ${end}%,`;
-  });
-
-  gradient = gradient.slice(0,-1)+")";
-  document.getElementById("wheel").style.background = gradient;
-}
-drawWheel();
-
-// 🎯 выбор приза
-function getPrize(){
-  let total = prizes.reduce((s,p)=>s+p.w,0);
-  let rand = Math.random()*total;
-
-  for(let p of prizes){
-    if(rand < p.w) return p.name;
-    rand -= p.w;
-  }
-}
-
-// 👤 регистрация
-async function reg(){
-  let r = await fetch("/reg",{method:"POST"});
-  user = await r.json();
-  localStorage.user = JSON.stringify(user);
-  show();
-}
-
-// показать
-function show(){
-  document.getElementById("user").innerText =
-    "👤 №"+user.id+" | 💰 "+user.balance;
-}
-
-// 🎡 крутка
-async function spin(){
-  if(!user) return alert("Сначала регистрация");
-
-  document.getElementById("s").play();
-
-  let w = document.getElementById("wheel");
-  w.style.transform = "rotate("+(Math.random()*3000)+"deg)";
-
-  setTimeout(async()=>{
-    let r = await fetch("/spin",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({id:user.id})
-    });
-
-    let d = await r.json();
-
-    if(d.error) return alert(d.error);
-
-    user.balance = d.balance;
-    localStorage.user = JSON.stringify(user);
-
-    show();
-
-    document.getElementById("res").innerText =
-      "🎁 "+d.prize;
-
-    confetti();
-    load();
-
-  },3000);
-}
-
-// 🎆 конфетти
-function confetti(){
-  for(let i=0;i<50;i++){
-    let d=document.createElement("div");
-    d.style.position="fixed";
-    d.style.left=Math.random()*100+"%";
-    d.style.top="0";
-    d.style.width="6px";
-    d.style.height="12px";
-    d.style.background="yellow";
-    d.style.animation="fall 2s linear";
-    document.body.appendChild(d);
-    setTimeout(()=>d.remove(),2000);
-  }
-}
-
-// 🏆 победители
-async function load(){
-  let r = await fetch("/win");
-  let data = await r.json();
-
-  let html="";
-  data.forEach(w=>{
-    html+=`<div class="card">👤 #${w.id} 🎁 ${w.prize}</div>`;
-  });
-
-  document.getElementById("wins").innerHTML=html;
-}
-
-// авто вход
-window.onload=()=>{
-  if(localStorage.user){
-    user = JSON.parse(localStorage.user);
-    show();
-  }
-  load();
-};
-</script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<script src="script.js"></script>
 
 </body>
 </html>
