@@ -1,105 +1,65 @@
 const express = require("express");
+const path = require("path");
+
 const app = express();
-
 app.use(express.json());
-app.use(express.static("."));
+app.use(express.static("public"));
 
-let users = [];
-let winners = [];
-let rareGiven = false;
+let users = {};
+let usedNumbers = new Set();
+let ultraWon = false;
 
-// 🎯 призы
-const prizes = [
-  {name:"5% скидка", w:30},
-  {name:"10% скидка", w:25},
-  {name:"15% скидка", w:20},
-  {name:"Сервис 3 года", w:10},
-  {name:"🍳 Посуда", w:2},
-  {name:"🍳 Tefal", w:2},
-  {name:"500 кг угля", w:0.5},
-  {name:"1 тонна угля", w:0.5},
-  {name:"🔥 КОТЕЛ", w:0.01}
-];
+// получить пользователя
+app.get("/api/user", (req, res) => {
+    let id;
+    do {
+        id = Math.floor(Math.random() * 5000);
+    } while (usedNumbers.has(id));
 
-// 🎯 выбор
-function getPrize(userId){
-  if ([100,777,1000].includes(userId)) {
-    return ["🍳 Посуда","🍳 Tefal","🔥 КОТЕЛ"][Math.floor(Math.random()*3)];
-  }
+    usedNumbers.add(id);
+    users[id] = { spun: false };
 
-  let total = prizes.reduce((s,p)=>s+p.w,0);
-  let rand = Math.random()*total;
+    res.json({ userId: id });
+});
 
-  for(let p of prizes){
-    if(rand < p.w){
-      if(p.name.includes("КОТЕЛ") && rareGiven){
-        return "5% скидка";
-      }
+// крутить
+app.post("/api/spin", (req, res) => {
+    const { userId } = req.body;
 
-      if(p.name.includes("КОТЕЛ")){
-        rareGiven = true;
-      }
-
-      return p.name;
+    if (!users[userId]) {
+        return res.json({ error: "user_not_found" });
     }
-    rand -= p.w;
-  }
-}
 
-// 👤 регистрация
-app.post("/reg",(req,res)=>{
-  let user = {
-    id: users.length+1,
-    balance: 50,
-    spins: [],
-    gotRare:false
-  };
+    if (users[userId].spun) {
+        return res.json({ prize: users[userId].prize });
+    }
 
-  users.push(user);
-  res.json(user);
+    let prize;
+
+    // счастливые номера
+    if ([100, 777, 1000].includes(Number(userId))) {
+        prize = "🎁 РЕДКИЙ ПОДАРОК";
+    } else {
+        let rand = Math.random();
+
+        if (!ultraWon && rand < 0.000001) {
+            prize = "🔥 БЕСПЛАТНЫЙ КОТЁЛ";
+            ultraWon = true;
+        } else if (rand < 0.05) {
+            const rare = ["Набор посуды", "Уголь 1 тонна", "Уголь 5 тонн"];
+            prize = rare[Math.floor(Math.random() * rare.length)];
+        } else {
+            const common = ["Скидка 5%", "Скидка 10%", "Скидка 15%", "Гарантия 3 года"];
+            prize = common[Math.floor(Math.random() * common.length)];
+        }
+    }
+
+    users[userId].spun = true;
+    users[userId].prize = prize;
+
+    res.json({ prize });
 });
 
-// 🎡 крутка
-app.post("/spin",(req,res)=>{
-  let {id} = req.body;
-  let user = users.find(u=>u.id===id);
-
-  if(!user) return res.send("error");
-
-  let now = Date.now();
-  user.spins = user.spins.filter(t=> now - t < 86400000);
-
-  if(user.spins.length >= 2){
-    return res.json({error:"Только 2 раза в сутки"});
-  }
-
-  user.spins.push(now);
-
-  if(user.balance < 10){
-    return res.json({error:"Нет монет"});
-  }
-
-  user.balance -= 10;
-
-  let prize = getPrize(user.id);
-
-  if((prize.includes("угля") || prize.includes("КОТЕЛ")) && user.gotRare){
-    prize = "5% скидка";
-  }
-
-  if(prize.includes("угля") || prize.includes("КОТЕЛ")){
-    user.gotRare = true;
-  }
-
-  if(prize.includes("КОТЕЛ")){
-    winners.push({id:user.id, prize});
-  }
-
-  res.json({prize, balance:user.balance});
+app.listen(3000, () => {
+    console.log("🔥 http://localhost:3000");
 });
-
-app.get("/win",(req,res)=>{
-  res.json(winners);
-});
-
-app.listen(process.env.PORT || 3000);
