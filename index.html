@@ -1,43 +1,176 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Alter Wheel</title>
-<link rel="stylesheet" href="style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALTER PROMO</title>
+
+<style>
+body {
+    margin:0;
+    font-family:sans-serif;
+    background: radial-gradient(circle,#3a0000,#000);
+    color:white;
+    text-align:center;
+}
+
+h1 { margin-top:20px; }
+
+.btn {
+    padding:14px 28px;
+    border:none;
+    border-radius:12px;
+    background: linear-gradient(45deg,#ff3c00,#ff8c00);
+    color:white;
+    cursor:pointer;
+    margin-top:15px;
+    box-shadow:0 0 15px rgba(255,100,0,0.6);
+}
+
+.insta {
+    background: linear-gradient(45deg,#833ab4,#fd1d1d,#fcb045);
+}
+
+.slot {
+    width:90%;
+    max-width:320px;
+    height:140px;
+    margin:30px auto;
+    border-radius:15px;
+    overflow:hidden;
+    border:1px solid orange;
+}
+
+.item {
+    height:140px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+/* ЧЕК */
+.receipt {
+    display:none;
+    width:90%;
+    max-width:420px;
+    margin:20px auto;
+    padding:30px;
+    background:white;
+    color:black;
+    border-radius:12px;
+    position:relative;
+}
+
+/* watermark */
+.receipt::before {
+    content:"ALTER ALTER ALTER ALTER ALTER ALTER ALTER ALTER";
+    position:absolute;
+    width:100%;
+    height:100%;
+    font-size:22px;
+    color:rgba(0,0,0,0.03);
+    transform:rotate(-25deg);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+</style>
 </head>
+
 <body>
 
-<div class="container">
+<h1>🔥 ALTER PROMO</h1>
+<p id="user"></p>
 
-<h1>🎡 Alter акция</h1>
-
-<button onclick="register()">Регистрация</button>
-<button onclick="spin()">Крутить</button>
-
-<h2 id="user"></h2>
-
-<div class="arrow">▼</div>
-<canvas id="wheel" width="300" height="300"></canvas>
-
-<h3 id="result"></h3>
-
-<h3>🏆 Победители</h3>
-<div id="winners"></div>
-
+<div class="slot">
+<div id="items"></div>
 </div>
 
-<!-- ЧЕК -->
-<div id="checkModal">
-  <div class="check">
-    <h3>🧾 Чек</h3>
-    <p id="checkText"></p>
-    <canvas id="qr"></canvas>
-    <button onclick="closeCheck()">Закрыть</button>
-  </div>
-</div>
+<button class="btn" onclick="spin()">Испытать удачу</button>
 
-<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-<script src="script.js"></script>
+<div class="receipt" id="receipt"></div>
+
+<button class="btn insta" id="insta" onclick="goInstagram()" style="display:none;">
+📲 Instagram
+</button>
+
+<script>
+
+let userId;
+
+// получить пользователя
+fetch("/api/user")
+.then(res => res.json())
+.then(data => {
+    userId = data.userId;
+    document.getElementById("user").innerText = "Ваш номер: " + userId;
+});
+
+// лента
+const prizes = [
+"Скидка 5%","Скидка 10%","Скидка 15%",
+"Гарантия 3 года",
+"Набор посуды",
+"Уголь 1 тонна","Уголь 5 тонн",
+"🔥 БЕСПЛАТНЫЙ КОТЁЛ"
+];
+
+const items = document.getElementById("items");
+
+for(let i=0;i<25;i++){
+let d=document.createElement("div");
+d.className="item";
+d.innerText=prizes[Math.floor(Math.random()*prizes.length)];
+items.appendChild(d);
+}
+
+// spin
+function spin(){
+
+fetch("/api/spin", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ userId })
+})
+.then(res=>res.json())
+.then(data=>{
+
+    let prize = data.prize;
+
+    items.style.transition="3s ease-out";
+    items.style.transform="translateY(-800px)";
+
+    setTimeout(()=>showReceipt(prize),3000);
+
+});
+}
+
+// чек
+function showReceipt(prize){
+
+let receipt = document.getElementById("receipt");
+receipt.style.display="block";
+
+receipt.innerHTML = `
+<h2>ALTER PROMO</h2>
+<p>Поздравляем!</p>
+<hr>
+<p><b>${prize}</b></p>
+<p>ID: ${userId}</p>
+<p>Код: ALT-${Math.floor(Math.random()*999999)}</p>
+<p>${new Date().toLocaleString()}</p>
+<hr>
+<p>ALTER • ALTER • ALTER</p>
+`;
+
+document.getElementById("insta").style.display="inline-block";
+}
+
+function goInstagram(){
+window.open("https://instagram.com/alter_products");
+}
+
+</script>
 
 </body>
 </html>
